@@ -13,37 +13,22 @@ public:
 /**
  * 
  */
-class XPT2046: public xTask
+class XPT2046
 {
 public:    
-                     XPT2046(SPIClass &spi, int cs,int irq,int speed,xMutex *tex);
-            virtual  ~XPT2046();
-            bool     setup(int *calibrationData);
-            void     run();
-            void     start();
-            bool     rawRead(int &x, int &y);
-            void     setHooks(XPT2046Hook *h) 
-                    {
-                        mHooks=h;
-                    }
-  static    void    irqAnon(void *a);            
-            void    irq();
+            virtual          ~XPT2046() {}
+            virtual bool     setup(int *calibrationData)=0;
+            virtual void     start()=0;            
+            virtual void     setHooks(XPT2046Hook *h) =0;
+                    
+            virtual bool     rawRead(int &x, int &y)=0; // This is only used for calibration
+            
+    static XPT2046 *spawn(SPIClass &spi, int cs,int irq,int speed,xMutex *tex);
 protected:
-        bool        mIdle;
-        SPIClass    &mSPI;    
-        int         mCs;
-        int         mFrequency;
-        SPISettings mSettings;
-        int         mRawData[20];
-        int         median(int a, int b, int c,int d);
-        xMutex      *mTex;
-        int         cap;
-        int         *mCalibration;
-        int         mIrq;        
-        XPT2046Hook *mHooks;
-        xBinarySemaphore *mSem;
-        void    interruptsOn();
-        void    interruptsOff();
+        XPT2046()
+        {
+            
+        };
 };
 
 // EOF

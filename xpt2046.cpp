@@ -6,7 +6,7 @@
  * @param x
  */
 #pragma once
-#include "xpt2046.h"
+#include "xpt2046_impl.h"
 #include "dso_debug.h"
 
 #define NB_BLOCKS 10
@@ -15,15 +15,15 @@
  * 
  * @param a
  */
-void XPT2046::irqAnon(void *a)
+void XPT2046impl::irqAnon(void *a)
 {
-    XPT2046 *x=(XPT2046 *)a;
+    XPT2046impl *x=(XPT2046impl *)a;
     x->irq();
 }
 /**
  * 
  */
-void XPT2046::irq()
+void XPT2046impl::irq()
 {
     mSem->giveFromInterrupt();
     interruptsOff();
@@ -31,14 +31,14 @@ void XPT2046::irq()
 /**
  * 
  */
-void    XPT2046::interruptsOn()
+void    XPT2046impl::interruptsOn()
 {
-    attachInterrupt(mIrq,XPT2046::irqAnon,this,FALLING);
+    attachInterrupt(mIrq,XPT2046impl::irqAnon,this,FALLING);
 }
 /**
  * 
  */
-void    XPT2046::interruptsOff()
+void    XPT2046impl::interruptsOff()
 {
     detachInterrupt(mIrq);
 }
@@ -46,7 +46,7 @@ void    XPT2046::interruptsOff()
 /**
  * 
  */
-XPT2046::XPT2046(SPIClass &spi, int cs,int irq,int speed,xMutex *x) : mSPI(spi),mSettings(speed,MSBFIRST, SPI_MODE0), xTask("TOUCH",3,200)
+XPT2046impl::XPT2046impl(SPIClass &spi, int cs,int irq,int speed,xMutex *x) : mSPI(spi),mSettings(speed,MSBFIRST, SPI_MODE0), xTask("TOUCH",3,200)
 {
     mCs=cs;
     mIrq=irq;
@@ -70,7 +70,7 @@ XPT2046::XPT2046(SPIClass &spi, int cs,int irq,int speed,xMutex *x) : mSPI(spi),
 /**
  * 
  */
- void    XPT2046::start()
+ void    XPT2046impl::start()
  {
      interruptsOn();
      vTaskResume(_taskHandle);
@@ -79,7 +79,7 @@ XPT2046::XPT2046(SPIClass &spi, int cs,int irq,int speed,xMutex *x) : mSPI(spi),
 /**
  * 
  */
-XPT2046::~XPT2046()
+XPT2046impl::~XPT2046impl()
 {
     
 }
@@ -123,7 +123,7 @@ static const uint8_t READ_SEQUENCE[]=
  * 
  * @return 
  */
-bool     XPT2046::setup(int *calibrationData)
+bool     XPT2046impl::setup(int *calibrationData)
 {
     mCalibration=calibrationData;
     return true;
@@ -148,7 +148,7 @@ static uint8_t rx[32];
  * @param c
  * @return 
  */
-int XPT2046::median(int aa, int bb, int cc,int dd)
+int XPT2046impl::median(int aa, int bb, int cc,int dd)
 {
     int val[4]={
         mRawData[aa],
@@ -177,7 +177,7 @@ int XPT2046::median(int aa, int bb, int cc,int dd)
  */
 int xmax=0,ymax=0;
 
-bool XPT2046::rawRead(int &x, int &y)
+bool XPT2046impl::rawRead(int &x, int &y)
 {
      mTex->lock();
      mSPI.beginTransaction(mSettings );
@@ -253,7 +253,7 @@ static int xmap(int value, int fromBegin, int fromEnd, int toBegin, int toEnd)
 /**
  * 
  */
-void     XPT2046::run()
+void     XPT2046impl::run()
 {
     // load calibration data
     xAssert(mCalibration);
@@ -317,4 +317,18 @@ void     XPT2046::run()
         }
     }
 }
+/**
+ * 
+ * @param spi
+ * @param cs
+ * @param irq
+ * @param speed
+ * @param tex
+ * @return 
+ */
+ XPT2046 *XPT2046::spawn(SPIClass &spi, int cs,int irq,int speed,xMutex *tex)
+ {
+     return new XPT2046impl(spi,cs,irq,speed,tex);
+ }
+
 // EOF
