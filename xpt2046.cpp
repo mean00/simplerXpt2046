@@ -55,7 +55,7 @@ XPT2046impl::XPT2046impl(SPIClass &spi, int cs,int irq,int speed,xMutex *x) : mS
     mFrequency=speed;
     
     interruptsOff();    
-    mIdle=true;
+    mState=XP_IDLE;
     pinMode(mIrq, INPUT_PULLUP);
     pinMode(mCs,OUTPUT);
     digitalWrite(mCs,HIGH);

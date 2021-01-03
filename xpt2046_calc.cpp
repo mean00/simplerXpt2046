@@ -165,6 +165,10 @@ static int xmap(int value, int fromBegin, int fromEnd, int toBegin, int toEnd)
     if(out<0) out=0;
     return out;
 }
+// in 10 ms tick
+#define SINGLE_THRESHOLD 10
+#define HOLDOFF          5
+
 /**
  * 
  */
@@ -186,50 +190,57 @@ void     XPT2046impl::run()
     const int yalpha=25;   
     float yb=(240.-25.)/((float)ymax-(float)(ymin));
     int ybeta=yb*512;
-
-    int counter=0;
+   
     while(1)
     {
-        if(mIdle)
+        xDelay(10);
+        switch(mState)
         {
-            mSem->take();
-            mIdle=false;
-            counter=0;
-        }
-        else
-        {
-            xDelay(10); 
-            int x,y;
-            if(!rawRead(x,y)) 
+            
+            case XP_IDLE:
+                 mSem->take();
+                 mLast=millis();
+                 mState=XP_CAPTURING;
+                 mCounter=0;
+                 continue;
+                 break;
+            case XP_CAPTURING:
             {
-                counter++;
-                if(counter>20)
+                int x,y;
+                
+                if(!rawRead(x,y))
                 {
-                    mIdle=true;
-                    interruptsOn();
+                       interruptsOn();
+                       mState=XP_IDLE;
+                       continue;
                 }
-                continue;
+                mCounter++;
+                if(mCounter>SINGLE_THRESHOLD)
+                {
+                    x=xalpha+(((x-xmin)*xbeta)>>9);
+                    y=yalpha+(((y-ymin)*ybeta)>>9);
+                    if(x<0) continue;
+                    if(y<0) continue;
+
+                    if(mHooks)
+                    {
+                        mHooks->pressEvent(x,y);
+                    }       
+                    mState=XP_HOLDOFF;
+                    mCounter=HOLDOFF;
+                }
             }
-            counter=0;
-            if(x>=8000 || y>=8000) continue;
-            
-          
-            Logger("XM: %d YM:%d",x,y);
-            
-            x=xalpha+(((x-xmin)*xbeta)>>9);
-            y=yalpha+(((y-ymin)*ybeta)>>9);
-            
-            Logger("Xc: %d Yc:%d",x,y);
-            
-            
-            if(x<0) continue;
-            if(y<0) continue;
-            
-            if(mHooks)
-            {
-                mHooks->pressEvent(x,y);
-            }        
-        }
+                break;
+            case XP_HOLDOFF:
+                mCounter--;
+                if(mCounter<=0)
+                {
+                    interruptsOn();
+                    mState=XP_IDLE;
+                    continue;
+                }
+            }
+
     }
 }
 
